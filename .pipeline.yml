@@ -1,28 +1,43 @@
-sudo: required
-services:
-  - docker
-language: node_js
-node_js:
-    - "stable"
+trigger:
+- dev
 
-branches:
-  only:
-    - dev
+pool:
+  vmImage: 'ubuntu-latest'
 
-before_install:
-  - docker build -t lightninglife/sample-docker-react -f Dockerfile.dev .
+jobs:
+- job: BuildAndTest
+  displayName: 'Build and Test'
+  steps:
+  - script: |
+      docker build -t lightninglife/sample-docker-react -f Dockerfile.dev .
+    displayName: 'Build Docker Image'
 
-script:
-  - docker run -e CI=true lightninglife/sample-docker-react npm run test -- --coverage --watchAll=false
+  - script: |
+      docker run -e CI=true lightninglife/sample-docker-react npm run test -- --coverage --watchAll=false
+    displayName: 'Run Tests'
 
-deploy:
-  provider: elasticbeanstalk
-  region: "us-east-2"
-  app: "hello-world"
-  env: "hello-world-env"
-  bucket_name: "test-b-ci-travis"
-  bucket_path: "hello-world"
-  on:
-    branch: dev
-  access_key_id: "$AWS_ACCESS_KEY"
-  secret_access_key: "$AWS_SECRET_KEY"
+- job: DeployToElasticBeanstalk
+  displayName: 'Deploy to Elastic Beanstalk'
+  dependsOn: BuildAndTest
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/dev'))
+  steps:
+  - task: UseNode@1
+    inputs:
+      version: '14'
+
+  - task: AWSCLI@1
+    inputs:
+      awsCommand: 'elasticbeanstalk'
+      subCommand: 'create-application-version'
+      regionName: 'us-east-2'
+      applicationName: 'hello-world'
+      versionLabel: '$(Build.SourceVersion)'
+      description: 'Application version from Azure Pipelines build'
+
+  - task: AWSBeanstalkDeploy@4
+    inputs:
+      awsCredentials: '<AWS_CONNECTION_NAME>' # Set up AWS service connection in Azure DevOps
+      regionName: 'us-east-2'
+      applicationName: 'hello-world'
+      environmentName: 'hello-world-env'
+      versionLabel: '$(Build.SourceVersion)'
