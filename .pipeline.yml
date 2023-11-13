@@ -1,0 +1,28 @@
+sudo: required
+services:
+  - docker
+language: node_js
+node_js:
+    - "stable"
+
+branches:
+  only:
+    - dev
+
+before_install:
+  - docker build -t lightninglife/sample-docker-react -f Dockerfile.dev .
+
+script:
+  - docker run -e CI=true lightninglife/sample-docker-react npm run test -- --coverage --watchAll=false
+
+deploy:
+  provider: elasticbeanstalk
+  region: "us-east-2"
+  app: "hello-world"
+  env: "hello-world-env"
+  bucket_name: "test-b-ci-travis"
+  bucket_path: "hello-world"
+  on:
+    branch: dev
+  access_key_id: "$AWS_ACCESS_KEY"
+  secret_access_key: "$AWS_SECRET_KEY"
