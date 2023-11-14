@@ -1,0 +1,44 @@
+trigger:
+- dev
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+- job: BuildAndTest
+  displayName: 'Build and Test'
+  steps:
+  - script: |
+      docker build -t lightninglife/sample-docker-react -f Dockerfile.dev .
+    displayName: 'Build Docker Image'
+
+  - script: |
+      docker run -e CI=true lightninglife/sample-docker-react npm run test -- --coverage --watchAll=false
+    displayName: 'Run Tests'
+
+- job: DeployToElasticBeanstalk
+  displayName: 'Deploy to Elastic Beanstalk'
+  dependsOn: BuildAndTest
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/dev'))
+  steps:
+  - task: S3Upload@1
+    displayName: 'S3 Upload: angular-docker-bucket'
+    inputs:
+      awsCredentials: 'AWS-test'
+      regionName: 'us-east-2'
+      bucketName: 'angular-docker-bucket'
+      sourceFolder: 'elastic-beanstalk'
+      globExpressions: output.zip
+      createBucket: true
+  - task: BeanstalkDeployApplication@1
+    displayName: 'Deploy to Elastic Beanstalk: angular-docker-test'
+    inputs:
+      awsCredentials: ''
+      regionName: 'us-east-2'
+      applicationName: 'angular-docker-test'
+      environmentName: 'AngularDockerTest-env'
+      applicationType: s3
+      deploymentBundleBucket: 'angular-docker-bucket'
+      deploymentBundleKey: output.zip
+      logRequest: true
+      logResponse: true
