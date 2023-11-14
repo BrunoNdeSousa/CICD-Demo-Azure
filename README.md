@@ -23,10 +23,15 @@ The app is dockerized to be used in a container. The `Dockerfile` is included in
 
 Note that a `Dockerfile.dev` exists in the root folder as well. That is used to build an image for testing purposes by Azure Pipelines.
 
-The image can be built locally as well with the docker run command:
+The image can be built locally as well with the docker build  command:
 
 ````
 docker build -t lightninglife/sample-docker-react -f Dockerfile.dev .
+````
+and run with:
+
+````
+docker run -d -p 80:80 lightninglife/sample-docker-react
 ````
 
 ### `Azure Pipelines`
