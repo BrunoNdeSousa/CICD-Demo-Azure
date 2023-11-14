@@ -23,6 +23,12 @@ The app is dockerized to be used in a container. The `Dockerfile` is included in
 
 Note that a `Dockerfile.dev` exists in the root folder as well. That is used to build an image for testing purposes by Azure Pipelines.
 
+The image can be built locally as well with the docker run command:
+
+````
+docker build -t lightninglife/sample-docker-react -f Dockerfile.dev .
+````
+
 ### `Azure Pipelines`
 
 Azure Pipelines is a cloud-based solution by Microsoft that automatically builds and tests code projects. It supports all major languages and project types. Azure Pipelines combines continuous integration (CI) and continuous delivery (CD) to test, build, and deliver code to any destination.
