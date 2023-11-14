@@ -21,23 +21,24 @@ jobs:
   dependsOn: BuildAndTest
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/dev'))
   steps:
-  - task: UseNode@1
+  - task: S3Upload@1
+    displayName: 'S3 Upload: angular-docker-bucket'
     inputs:
-      version: '14'
-
-  - task: AWSCLI@1
-    inputs:
-      awsCommand: 'elasticbeanstalk'
-      subCommand: 'create-application-version'
+      awsCredentials: 'AWS-test'
       regionName: 'us-east-2'
-      applicationName: 'hello-world'
-      versionLabel: '$(Build.SourceVersion)'
-      description: 'Application version from Azure Pipelines build'
-
-  - task: AWSBeanstalkDeploy@4
+      bucketName: 'angular-docker-bucket'
+      sourceFolder: 'elastic-beanstalk'
+      globExpressions: output.zip
+      createBucket: true
+  - task: BeanstalkDeployApplication@1
+    displayName: 'Deploy to Elastic Beanstalk: angular-docker-test'
     inputs:
-      awsCredentials: '<AWS_CONNECTION_NAME>' # Set up AWS service connection in Azure DevOps
+      awsCredentials: ''
       regionName: 'us-east-2'
-      applicationName: 'hello-world'
-      environmentName: 'hello-world-env'
-      versionLabel: '$(Build.SourceVersion)'
+      applicationName: 'angular-docker-test'
+      environmentName: 'AngularDockerTest-env'
+      applicationType: s3
+      deploymentBundleBucket: 'angular-docker-bucket'
+      deploymentBundleKey: output.zip
+      logRequest: true
+      logResponse: true
